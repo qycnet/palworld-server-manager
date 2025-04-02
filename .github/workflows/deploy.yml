@@ -1,0 +1,71 @@
+name: Deploy Frontend and Backend
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '16.x'
+        cache: 'npm'
+
+    # Frontend Build
+    - name: Install Frontend Dependencies
+      run: |
+        cd frontend
+        npm install
+
+    - name: Build Frontend
+      run: |
+        cd frontend
+        npm run build
+      env:
+        CI: false
+        REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
+
+    # Backend Build
+    - name: Install Backend Dependencies
+      run: |
+        cd backend
+        npm install
+
+    - name: Build Backend
+      run: |
+        cd backend
+        npm run build
+      env:
+        NODE_ENV: production
+        PORT: ${{ secrets.PORT }}
+        DB_PATH: ${{ secrets.DB_PATH }}
+        LOG_PATH: ${{ secrets.LOG_PATH }}
+        CORS_ORIGIN: ${{ secrets.CORS_ORIGIN }}
+        PALWORLD_API_URL: ${{ secrets.PALWORLD_API_URL }}
+        PALWORLD_API_KEY: ${{ secrets.PALWORLD_API_KEY }}
+
+    # Deploy to GitHub Pages (Frontend)
+    - name: Deploy Frontend to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      if: github.ref == 'refs/heads/main'
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./frontend/build
+
+    # Optional: Deploy Backend (example using PM2)
+    # You'll need to set up your own server deployment method
+    # This is just a placeholder for demonstration
+    - name: Deploy Backend
+      if: github.ref == 'refs/heads/main'
+      run: |
+        echo "Backend deployment steps would go here"
+        # Example using PM2 (you'll need to customize this)
+        # pm2 restart palworld-backend
