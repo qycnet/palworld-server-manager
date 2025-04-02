@@ -39,7 +39,7 @@
 
 1. 克隆仓库
 ```bash
-git clone https://github.com/yourusername/palworld-server-manager.git
+git clone https://github.com/qycnet/palworld-server-manager.git
 cd palworld-server-manager
 ```
 
@@ -131,5 +131,5 @@ API文档详见 [docs/api.md](docs/api.md)
 
 ## 联系方式
 
-- 项目链接：[https://github.com/yourusername/palworld-server-manager](https://github.com/yourusername/palworld-server-manager)
-- 问题反馈：[https://github.com/yourusername/palworld-server-manager/issues](https://github.com/yourusername/palworld-server-manager/issues)
+- 项目链接：[https://github.com/qycnet/palworld-server-manager](https://github.com/qycnet/palworld-server-manager)
+- 问题反馈：[https://github.com/qycnet/palworld-server-manager/issues](https://github.com/qycnet/palworld-server-manager/issues)
