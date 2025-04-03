@@ -9,6 +9,8 @@ on:
 permissions:
   contents: write
 
+# 环境变量将在需要时直接引用
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -30,9 +32,16 @@ jobs:
     - name: Build
       run: |
         cd frontend
-        CI=false npm run build
+        npm run build
       env:
+        CI: false
         REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
+        PORT: ${{ secrets.PORT }}
+        DB_PATH: ${{ secrets.DB_PATH }}
+        LOG_PATH: ${{ secrets.LOG_PATH }}
+        CORS_ORIGIN: ${{ secrets.CORS_ORIGIN }}
+        PALWORLD_API_URL: ${{ secrets.PALWORLD_API_URL }}
+        PALWORLD_API_KEY: ${{ secrets.PALWORLD_API_KEY }}
 
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3

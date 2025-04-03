@@ -1,57 +1,69 @@
-import React, { useState } from 'react';
-import { Table, Input, Button, Space, Tag, Modal, message } from 'antd';
-import { SearchOutlined, UserDeleteOutlined, MessageOutlined } from '@ant-design/icons';
-
-interface Player {
-  id: string;
-  name: string;
-  steamId: string;
-  status: 'online' | 'offline' | 'banned';
-  lastSeen: string;
-  playTime: string;
-}
+import React, { useState, useEffect } from 'react';
+import { Table, Input, Button, Space, Tag, Modal, message, Tooltip, Drawer, Form, Select } from 'antd';
+import {
+  SearchOutlined,
+  UserDeleteOutlined,
+  MessageOutlined,
+  InfoCircleOutlined,
+  StopOutlined,
+} from '@ant-design/icons';
+import { Player, getPlayers, banPlayer, kickPlayer, sendMessage, getPlayerDetails, updatePlayerPermissions } from '../services/playerService';
 
 const PlayerManagement: React.FC = () => {
   const [searchText, setSearchText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [messageModalVisible, setMessageModalVisible] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [messageText, setMessageText] = useState('');
+  const [detailsDrawerVisible, setDetailsDrawerVisible] = useState(false);
+  const [playerDetails, setPlayerDetails] = useState<Player | null>(null);
+  const [kickModalVisible, setKickModalVisible] = useState(false);
+  const [kickReason, setKickReason] = useState('');
 
-  // 模拟玩家数据
-  const players: Player[] = [
-    {
-      id: '1',
-      name: 'Player1',
-      steamId: '76561198123456789',
-      status: 'online',
-      lastSeen: '当前在线',
-      playTime: '120小时',
-    },
-    {
-      id: '2',
-      name: 'Player2',
-      steamId: '76561198987654321',
-      status: 'offline',
-      lastSeen: '2023-04-01 15:30',
-      playTime: '45小时',
-    },
-    {
-      id: '3',
-      name: 'Player3',
-      steamId: '76561198555555555',
-      status: 'banned',
-      lastSeen: '2023-03-28 10:15',
-      playTime: '67小时',
-    },
-  ];
-
-  const handleSearch = () => {
-    // TODO: 实现搜索功能
+  // 获取玩家列表
+  const fetchPlayers = async (search?: string) => {
+    try {
+      setLoading(true);
+      const data = await getPlayers(search);
+      setPlayers(data);
+    } catch (error) {
+      message.error('获取玩家列表失败');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleBanPlayer = (player: Player) => {
-    // TODO: 实现封禁玩家功能
-    message.success(`已${player.status === 'banned' ? '解封' : '封禁'}玩家: ${player.name}`);
+  useEffect(() => {
+    fetchPlayers();
+  }, []);
+
+  const handleSearch = () => {
+    fetchPlayers(searchText);
+  };
+
+  const handleBanPlayer = async (player: Player) => {
+    try {
+      await banPlayer(player.id, player.status !== 'banned');
+      message.success(`已${player.status === 'banned' ? '解封' : '封禁'}玩家: ${player.name}`);
+      fetchPlayers();
+    } catch (error) {
+      message.error(`${player.status === 'banned' ? '解封' : '封禁'}玩家失败`);
+    }
+  };
+
+  const handleKickPlayer = async () => {
+    if (!selectedPlayer) return;
+    
+    try {
+      await kickPlayer(selectedPlayer.id, kickReason);
+      message.success(`已踢出玩家: ${selectedPlayer.name}`);
+      setKickModalVisible(false);
+      setKickReason('');
+      fetchPlayers();
+    } catch (error) {
+      message.error('踢出玩家失败');
+    }
   };
 
   const handleSendMessage = (player: Player) => {
@@ -59,15 +71,30 @@ const PlayerManagement: React.FC = () => {
     setMessageModalVisible(true);
   };
 
-  const handleSendMessageSubmit = () => {
-    if (!messageText.trim()) {
+  const handleSendMessageSubmit = async () => {
+    if (!messageText.trim() || !selectedPlayer) {
       message.error('消息不能为空');
       return;
     }
-    // TODO: 实现发送消息功能
-    message.success(`已向 ${selectedPlayer?.name} 发送消息`);
-    setMessageModalVisible(false);
-    setMessageText('');
+
+    try {
+      await sendMessage(selectedPlayer.id, messageText);
+      message.success(`已向 ${selectedPlayer.name} 发送消息`);
+      setMessageModalVisible(false);
+      setMessageText('');
+    } catch (error) {
+      message.error('发送消息失败');
+    }
+  };
+
+  const showPlayerDetails = async (player: Player) => {
+    try {
+      const details = await getPlayerDetails(player.id);
+      setPlayerDetails(details);
+      setDetailsDrawerVisible(true);
+    } catch (error) {
+      message.error('获取玩家详情失败');
+    }
   };
 
   const columns = [
@@ -75,6 +102,17 @@ const PlayerManagement: React.FC = () => {
       title: '玩家名称',
       dataIndex: 'name',
       key: 'name',
+      render: (text: string, record: Player) => (
+        <Space>
+          {text}
+          <Tooltip title="查看详情">
+            <InfoCircleOutlined
+              style={{ cursor: 'pointer' }}
+              onClick={() => showPlayerDetails(record)}
+            />
+          </Tooltip>
+        </Space>
+      ),
     },
     {
       title: 'Steam ID',
@@ -86,28 +124,13 @@ const PlayerManagement: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => {
-        let color = '';
-        let text = '';
-        
-        switch (status) {
-          case 'online':
-            color = 'green';
-            text = '在线';
-            break;
-          case 'offline':
-            color = 'gray';
-            text = '离线';
-            break;
-          case 'banned':
-            color = 'red';
-            text = '已封禁';
-            break;
-          default:
-            color = 'blue';
-            text = status;
-        }
-        
-        return <Tag color={color}>{text}</Tag>;
+        const statusConfig = {
+          online: { color: 'green', text: '在线' },
+          offline: { color: 'gray', text: '离线' },
+          banned: { color: 'red', text: '已封禁' },
+        };
+        const config = statusConfig[status as keyof typeof statusConfig] || { color: 'blue', text: status };
+        return <Tag color={config.color}>{config.text}</Tag>;
       },
     },
     {
@@ -121,6 +144,11 @@ const PlayerManagement: React.FC = () => {
       key: 'playTime',
     },
     {
+      title: '等级',
+      dataIndex: 'level',
+      key: 'level',
+    },
+    {
       title: '操作',
       key: 'action',
       render: (_: any, record: Player) => (
@@ -131,6 +159,16 @@ const PlayerManagement: React.FC = () => {
             disabled={record.status !== 'online'}
           >
             发送消息
+          </Button>
+          <Button
+            icon={<StopOutlined />}
+            onClick={() => {
+              setSelectedPlayer(record);
+              setKickModalVisible(true);
+            }}
+            disabled={record.status !== 'online'}
+          >
+            踢出
           </Button>
           <Button
             danger={record.status !== 'banned'}
@@ -167,6 +205,7 @@ const PlayerManagement: React.FC = () => {
         columns={columns}
         dataSource={players}
         rowKey="id"
+        loading={loading}
         pagination={{ pageSize: 10 }}
       />
 
@@ -183,6 +222,45 @@ const PlayerManagement: React.FC = () => {
           placeholder="输入要发送的消息"
         />
       </Modal>
+
+      <Modal
+        title={`踢出玩家 ${selectedPlayer?.name}`}
+        open={kickModalVisible}
+        onOk={handleKickPlayer}
+        onCancel={() => {
+          setKickModalVisible(false);
+          setKickReason('');
+        }}
+      >
+        <Input.TextArea
+          rows={4}
+          value={kickReason}
+          onChange={(e) => setKickReason(e.target.value)}
+          placeholder="输入踢出原因（可选）"
+        />
+      </Modal>
+
+      <Drawer
+        title="玩家详情"
+        placement="right"
+        onClose={() => setDetailsDrawerVisible(false)}
+        open={detailsDrawerVisible}
+        width={400}
+      >
+        {playerDetails && (
+          <div>
+            <p><strong>玩家ID:</strong> {playerDetails.id}</p>
+            <p><strong>名称:</strong> {playerDetails.name}</p>
+            <p><strong>Steam ID:</strong> {playerDetails.steamId}</p>
+            <p><strong>状态:</strong> {playerDetails.status}</p>
+            <p><strong>等级:</strong> {playerDetails.level || '未知'}</p>
+            <p><strong>公会:</strong> {playerDetails.guild || '无'}</p>
+            <p><strong>IP地址:</strong> {playerDetails.ipAddress || '未知'}</p>
+            <p><strong>游戏时长:</strong> {playerDetails.playTime}</p>
+            <p><strong>最后在线:</strong> {playerDetails.lastSeen}</p>
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 };

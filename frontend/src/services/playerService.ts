@@ -7,64 +7,69 @@ export interface Player {
   status: 'online' | 'offline' | 'banned';
   lastSeen: string;
   playTime: string;
+  level?: number;
+  guild?: string;
+  ipAddress?: string;
 }
 
-const playerService = {
-  /**
-   * 获取所有玩家列表
-   */
-  getAllPlayers: async (): Promise<Player[]> => {
-    return api.get('/players');
-  },
-
-  /**
-   * 获取在线玩家列表
-   */
-  getOnlinePlayers: async (): Promise<Player[]> => {
-    return api.get('/players/online');
-  },
-
-  /**
-   * 获取单个玩家信息
-   */
-  getPlayer: async (playerId: string): Promise<Player> => {
-    return api.get(`/players/${playerId}`);
-  },
-
-  /**
-   * 封禁玩家
-   */
-  banPlayer: async (playerId: string, reason: string): Promise<void> => {
-    return api.post(`/players/${playerId}/ban`, { reason });
-  },
-
-  /**
-   * 解封玩家
-   */
-  unbanPlayer: async (playerId: string): Promise<void> => {
-    return api.post(`/players/${playerId}/unban`);
-  },
-
-  /**
-   * 踢出玩家
-   */
-  kickPlayer: async (playerId: string, reason: string): Promise<void> => {
-    return api.post(`/players/${playerId}/kick`, { reason });
-  },
-
-  /**
-   * 向玩家发送消息
-   */
-  sendMessageToPlayer: async (playerId: string, message: string): Promise<void> => {
-    return api.post(`/players/${playerId}/message`, { message });
-  },
-
-  /**
-   * 搜索玩家
-   */
-  searchPlayers: async (query: string): Promise<Player[]> => {
-    return api.get('/players/search', { params: { query } });
-  },
+export const getPlayers = async (searchQuery?: string) => {
+  try {
+    const response = await api.get('/players', {
+      params: { search: searchQuery }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching players:', error);
+    throw error;
+  }
 };
 
-export default playerService;
+export const banPlayer = async (playerId: string, isBanned: boolean) => {
+  try {
+    const response = await api.post(`/players/${playerId}/${isBanned ? 'ban' : 'unban'}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating player ban status:', error);
+    throw error;
+  }
+};
+
+export const kickPlayer = async (playerId: string, reason?: string) => {
+  try {
+    const response = await api.post(`/players/${playerId}/kick`, { reason });
+    return response.data;
+  } catch (error) {
+    console.error('Error kicking player:', error);
+    throw error;
+  }
+};
+
+export const sendMessage = async (playerId: string, message: string) => {
+  try {
+    const response = await api.post(`/players/${playerId}/message`, { message });
+    return response.data;
+  } catch (error) {
+    console.error('Error sending message:', error);
+    throw error;
+  }
+};
+
+export const getPlayerDetails = async (playerId: string) => {
+  try {
+    const response = await api.get(`/players/${playerId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching player details:', error);
+    throw error;
+  }
+};
+
+export const updatePlayerPermissions = async (playerId: string, permissions: string[]) => {
+  try {
+    const response = await api.put(`/players/${playerId}/permissions`, { permissions });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating player permissions:', error);
+    throw error;
+  }
+};

@@ -1,11 +1,23 @@
 import axios from 'axios';
 import logger from '../utils/logger';
 
+export interface Player {
+  id: string;
+  name: string;
+  steamId: string;
+  status: 'online' | 'offline' | 'banned';
+  lastSeen: string;
+  playTime: string;
+  level?: number;
+  guild?: string;
+  ipAddress?: string;
+}
+
 /**
  * PalWorld API 服务
  * 用于与 PalWorld 游戏服务器的 REST API 交互
  */
-class PalworldService {
+export class PalworldService {
   private baseUrl: string;
   private apiKey: string;
 
@@ -43,6 +55,36 @@ class PalworldService {
   }
 
   /**
+   * 获取玩家列表，支持搜索
+   */
+  async getPlayers(searchQuery?: string) {
+    try {
+      const api = this.createApiClient();
+      const response = await api.get('/players', {
+        params: { search: searchQuery }
+      });
+      return response.data;
+    } catch (error) {
+      logger.error('获取玩家列表失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取玩家详细信息
+   */
+  async getPlayerDetails(playerId: string) {
+    try {
+      const api = this.createApiClient();
+      const response = await api.get(`/players/${playerId}`);
+      return response.data;
+    } catch (error) {
+      logger.error(`获取玩家 ${playerId} 详细信息失败:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * 获取在线玩家列表
    */
   async getOnlinePlayers() {
@@ -57,43 +99,15 @@ class PalworldService {
   }
 
   /**
-   * 获取所有玩家列表
+   * 更新玩家封禁状态
    */
-  async getAllPlayers() {
+  async updatePlayerBanStatus(playerId: string, isBanned: boolean, reason?: string) {
     try {
       const api = this.createApiClient();
-      const response = await api.get('/players');
+      const response = await api.post(`/players/${playerId}/${isBanned ? 'ban' : 'unban'}`, { reason });
       return response.data;
     } catch (error) {
-      logger.error('获取所有玩家列表失败:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * 封禁玩家
-   */
-  async banPlayer(steamId: string, reason: string) {
-    try {
-      const api = this.createApiClient();
-      const response = await api.post(`/players/${steamId}/ban`, { reason });
-      return response.data;
-    } catch (error) {
-      logger.error(`封禁玩家 ${steamId} 失败:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * 解封玩家
-   */
-  async unbanPlayer(steamId: string) {
-    try {
-      const api = this.createApiClient();
-      const response = await api.post(`/players/${steamId}/unban`);
-      return response.data;
-    } catch (error) {
-      logger.error(`解封玩家 ${steamId} 失败:`, error);
+      logger.error(`${isBanned ? '封禁' : '解封'}玩家 ${playerId} 失败:`, error);
       throw error;
     }
   }
@@ -101,13 +115,13 @@ class PalworldService {
   /**
    * 踢出玩家
    */
-  async kickPlayer(steamId: string, reason: string) {
+  async kickPlayer(playerId: string, reason?: string) {
     try {
       const api = this.createApiClient();
-      const response = await api.post(`/players/${steamId}/kick`, { reason });
+      const response = await api.post(`/players/${playerId}/kick`, { reason });
       return response.data;
     } catch (error) {
-      logger.error(`踢出玩家 ${steamId} 失败:`, error);
+      logger.error(`踢出玩家 ${playerId} 失败:`, error);
       throw error;
     }
   }
@@ -115,13 +129,27 @@ class PalworldService {
   /**
    * 向玩家发送消息
    */
-  async sendMessageToPlayer(steamId: string, message: string) {
+  async sendMessageToPlayer(playerId: string, message: string) {
     try {
       const api = this.createApiClient();
-      const response = await api.post(`/players/${steamId}/message`, { message });
+      const response = await api.post(`/players/${playerId}/message`, { message });
       return response.data;
     } catch (error) {
-      logger.error(`向玩家 ${steamId} 发送消息失败:`, error);
+      logger.error(`向玩家 ${playerId} 发送消息失败:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 更新玩家权限
+   */
+  async updatePlayerPermissions(playerId: string, permissions: string[]) {
+    try {
+      const api = this.createApiClient();
+      const response = await api.put(`/players/${playerId}/permissions`, { permissions });
+      return response.data;
+    } catch (error) {
+      logger.error(`更新玩家 ${playerId} 权限失败:`, error);
       throw error;
     }
   }
@@ -238,5 +266,3 @@ class PalworldService {
     }
   }
 }
-
-export default new PalworldService();

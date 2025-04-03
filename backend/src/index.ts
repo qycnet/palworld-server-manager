@@ -11,6 +11,7 @@ import serverRoutes from './routes/serverRoutes';
 import playerRoutes from './routes/playerRoutes';
 import worldRoutes from './routes/worldRoutes';
 import authRoutes from './routes/authRoutes';
+import serverConfigRoutes from './routes/serverConfigRoutes';
 import { errorHandler } from './utils/errorHandler';
 import { setupWebSocketEvents } from './services/socketService';
 import { initializeDatabase } from './models/database';
@@ -52,6 +53,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/server', serverRoutes);
 app.use('/api/players', playerRoutes);
 app.use('/api/world', worldRoutes);
+app.use('/api/server/config', serverConfigRoutes);
 
 // 错误处理
 app.use(errorHandler);

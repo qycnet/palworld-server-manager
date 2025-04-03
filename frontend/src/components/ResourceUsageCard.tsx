@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Progress, Space } from 'antd';
+import { Card, Progress, Space, Tooltip } from 'antd';
 
 interface ResourceUsageCardProps {
   cpuUsage: number;
@@ -12,20 +12,53 @@ const ResourceUsageCard: React.FC<ResourceUsageCardProps> = ({
   memoryUsage,
   diskUsage,
 }) => {
+  const getStatusColor = (usage: number) => {
+    if (usage > 90) return 'exception';
+    if (usage > 70) return 'warning';
+    return 'normal';
+  };
+
   return (
     <Card title="资源使用" className="stat-card">
       <Space direction="vertical" style={{ width: '100%' }}>
         <div>
-          <span>CPU使用率</span>
-          <Progress percent={cpuUsage} status={cpuUsage > 90 ? 'exception' : 'normal'} />
+          <Tooltip title={`CPU使用率: ${cpuUsage}%`}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>CPU使用率</span>
+              <span>{cpuUsage}%</span>
+            </div>
+            <Progress 
+              percent={cpuUsage} 
+              status={getStatusColor(cpuUsage) as "success" | "exception" | "normal" | "active" | undefined} 
+              showInfo={false}
+            />
+          </Tooltip>
         </div>
         <div>
-          <span>内存使用率</span>
-          <Progress percent={memoryUsage} status={memoryUsage > 90 ? 'exception' : 'normal'} />
+          <Tooltip title={`内存使用率: ${memoryUsage}%`}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>内存使用率</span>
+              <span>{memoryUsage}%</span>
+            </div>
+            <Progress 
+              percent={memoryUsage} 
+              status={getStatusColor(memoryUsage) as "success" | "exception" | "normal" | "active" | undefined} 
+              showInfo={false}
+            />
+          </Tooltip>
         </div>
         <div>
-          <span>磁盘使用率</span>
-          <Progress percent={diskUsage} status={diskUsage > 90 ? 'exception' : 'normal'} />
+          <Tooltip title={`磁盘使用率: ${diskUsage}%`}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>磁盘使用率</span>
+              <span>{diskUsage}%</span>
+            </div>
+            <Progress 
+              percent={diskUsage} 
+              status={getStatusColor(diskUsage) as "success" | "exception" | "normal" | "active" | undefined} 
+              showInfo={false}
+            />
+          </Tooltip>
         </div>
       </Space>
     </Card>
