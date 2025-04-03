@@ -4,22 +4,23 @@ on:
   push:
     branches:
       - main  # 当推送到main分支时触发
+  workflow_dispatch:  # 允许手动触发工作流
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Setup Node.js
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v3
       with:
-        node-version: '14'
+        node-version: '18'
 
     - name: Install dependencies
       run: |
         cd frontend
-        npm install
+        npm ci
 
     - name: Build
       run: |
@@ -30,4 +31,4 @@ jobs:
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./frontend/build  # 假设构建输出在frontend/build目录
+        publish_dir: ./frontend/build
